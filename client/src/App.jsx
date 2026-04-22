@@ -397,7 +397,7 @@ function App() {
 
           <div className="admin-note">
             <p><strong>Demo Admin Email:</strong> admin@mackynexus.com</p>
-            <p><strong>Demo Password:</strong> 123456</p>
+            <p><strong>Demo Password:</strong> Macky143921</p>
           </div>
         </section>
 

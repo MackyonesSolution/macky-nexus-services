@@ -10,7 +10,7 @@ const customerRequirements = [];
 const serviceProviders = [];
 
 const ADMIN_EMAIL = "admin@mackynexus.com";
-const ADMIN_PASSWORD = "123456";
+const ADMIN_PASSWORD = "Macky143921";
 const ADMIN_TOKEN = "macky-admin-token";
 
 app.get("/", (req, res) => {
