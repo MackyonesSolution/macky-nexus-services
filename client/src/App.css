@@ -1,0 +1,32 @@
+.nav-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid #5d7da7;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.nav-btn:hover {
+  background: #11284a;
+}
+
+.admin-note {
+  max-width: 900px;
+  margin: 20px auto 0;
+  background: #13294a;
+  border: 1px solid #31557e;
+  border-radius: 18px;
+  padding: 20px;
+  color: #d8e4f3;
+  line-height: 1.8;
+}
+
+.dashboard-list {
+  max-width: 1100px;
+  margin: auto;
+  display: grid;
+  gap: 20px;
+}
