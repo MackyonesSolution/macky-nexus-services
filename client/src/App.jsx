@@ -130,7 +130,69 @@ function App() {
       console.log(error);
     }
   };
+const deleteCustomer = async (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this customer permanently?"
+  );
+  if (!confirmDelete) return;
 
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/api/admin/customer-requirements/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "x-admin-token": adminToken,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to delete customer");
+      return;
+    }
+
+    alert("Customer deleted permanently");
+    loadDashboard();
+  } catch (error) {
+    alert("Server error while deleting customer");
+    console.log(error);
+  }
+};
+
+const deleteProvider = async (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this provider permanently?"
+  );
+  if (!confirmDelete) return;
+
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/api/admin/service-providers/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "x-admin-token": adminToken,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to delete provider");
+      return;
+    }
+
+    alert("Provider deleted permanently");
+    loadDashboard();
+  } catch (error) {
+    alert("Server error while deleting provider");
+    console.log(error);
+  }
+};
   const handleAdminLogin = async (e) => {
     e.preventDefault();
 
@@ -449,6 +511,21 @@ function App() {
                   <p><strong>Location:</strong> {item.location}</p>
                   <p><strong>Requirement:</strong> {item.requirement}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
+                  <button
+  onClick={() => deleteCustomer(item.id)}
+  style={{
+    marginTop: "10px",
+    background: "#ff4d4f",
+    color: "#fff",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold"
+  }}
+>
+  Delete Permanently
+</button>
                 </div>
               ))
             )}
@@ -478,6 +555,21 @@ function App() {
                   <p><strong>City:</strong> {item.city}</p>
                   <p><strong>Details:</strong> {item.details}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
+                  <button
+  onClick={() => deleteProvider(item.id)}
+  style={{
+    marginTop: "10px",
+    background: "#ff4d4f",
+    color: "#fff",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold"
+  }}
+>
+  Delete Permanently
+</button>
                 </div>
               ))
             )}
