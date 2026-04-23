@@ -34,6 +34,19 @@ function App() {
     password: "",
   });
 
+  const [customerOtpForm, setCustomerOtpForm] = useState({
+    mobile: "",
+    otp: "",
+  });
+
+  const [providerOtpForm, setProviderOtpForm] = useState({
+    mobile: "",
+    otp: "",
+  });
+
+  const [customerOtpSent, setCustomerOtpSent] = useState(false);
+  const [providerOtpSent, setProviderOtpSent] = useState(false);
+
   const handleCustomerChange = (e) => {
     setCustomerForm({ ...customerForm, [e.target.name]: e.target.value });
   };
@@ -44,6 +57,14 @@ function App() {
 
   const handleAdminChange = (e) => {
     setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
+  };
+
+  const handleCustomerOtpChange = (e) => {
+    setCustomerOtpForm({ ...customerOtpForm, [e.target.name]: e.target.value });
+  };
+
+  const handleProviderOtpChange = (e) => {
+    setProviderOtpForm({ ...providerOtpForm, [e.target.name]: e.target.value });
   };
 
   const handleCustomerSubmit = async (e) => {
@@ -130,69 +151,189 @@ function App() {
       console.log(error);
     }
   };
-const deleteCustomer = async (id) => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this customer permanently?"
-  );
-  if (!confirmDelete) return;
 
-  try {
-    const res = await fetch(
-      `${API_BASE_URL}/api/admin/customer-requirements/${id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "x-admin-token": adminToken,
-        },
-      }
+  const deleteCustomer = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this customer permanently?"
     );
+    if (!confirmDelete) return;
 
-    const data = await res.json();
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/customer-requirements/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-admin-token": adminToken,
+          },
+        }
+      );
 
-    if (!res.ok) {
-      alert(data.message || "Failed to delete customer");
-      return;
-    }
+      const data = await res.json();
 
-    alert("Customer deleted permanently");
-    loadDashboard();
-  } catch (error) {
-    alert("Server error while deleting customer");
-    console.log(error);
-  }
-};
-
-const deleteProvider = async (id) => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this provider permanently?"
-  );
-  if (!confirmDelete) return;
-
-  try {
-    const res = await fetch(
-      `${API_BASE_URL}/api/admin/service-providers/${id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "x-admin-token": adminToken,
-        },
+      if (!res.ok) {
+        alert(data.message || "Failed to delete customer");
+        return;
       }
-    );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Failed to delete provider");
-      return;
+      alert("Customer deleted permanently");
+      loadDashboard();
+    } catch (error) {
+      alert("Server error while deleting customer");
+      console.log(error);
     }
+  };
 
-    alert("Provider deleted permanently");
-    loadDashboard();
-  } catch (error) {
-    alert("Server error while deleting provider");
-    console.log(error);
-  }
-};
+  const deleteProvider = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this provider permanently?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/service-providers/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-admin-token": adminToken,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to delete provider");
+        return;
+      }
+
+      alert("Provider deleted permanently");
+      loadDashboard();
+    } catch (error) {
+      alert("Server error while deleting provider");
+      console.log(error);
+    }
+  };
+
+  const sendCustomerOtp = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobile: customerOtpForm.mobile,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || data.data?.message || "Failed to send OTP");
+        return;
+      }
+
+      setCustomerOtpSent(true);
+      alert("OTP sent successfully");
+    } catch (error) {
+      alert("Failed to send OTP");
+      console.log(error);
+    }
+  };
+
+  const verifyCustomerOtp = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobile: customerOtpForm.mobile,
+          otp: customerOtpForm.otp,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || data.data?.message || "Invalid OTP");
+        return;
+      }
+
+      alert("Customer login successful");
+      setPage("customer");
+    } catch (error) {
+      alert("OTP verification failed");
+      console.log(error);
+    }
+  };
+
+  const sendProviderOtp = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobile: providerOtpForm.mobile,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || data.data?.message || "Failed to send OTP");
+        return;
+      }
+
+      setProviderOtpSent(true);
+      alert("OTP sent successfully");
+    } catch (error) {
+      alert("Failed to send OTP");
+      console.log(error);
+    }
+  };
+
+  const verifyProviderOtp = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobile: providerOtpForm.mobile,
+          otp: providerOtpForm.otp,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || data.data?.message || "Invalid OTP");
+        return;
+      }
+
+      alert("Service Provider login successful");
+      setPage("provider");
+    } catch (error) {
+      alert("OTP verification failed");
+      console.log(error);
+    }
+  };
+
   const handleAdminLogin = async (e) => {
     e.preventDefault();
 
@@ -225,6 +366,128 @@ const deleteProvider = async (id) => {
     }
   }, [page, adminToken]);
 
+  if (page === "customerLogin") {
+    return (
+      <div className="site">
+        <header className="header">
+          <div className="brand">
+            <h1>Macky Nexus Services ⭐</h1>
+            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
+          </div>
+
+          <nav className="nav">
+            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
+              Home
+            </button>
+            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
+              Service Provider Login
+            </button>
+            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
+              Admin
+            </button>
+          </nav>
+        </header>
+
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Customer OTP Login</h2>
+            <p>Login with your mobile number and OTP.</p>
+          </div>
+
+          <form className="contact-form" onSubmit={customerOtpSent ? verifyCustomerOtp : sendCustomerOtp}>
+            <input
+              type="text"
+              name="mobile"
+              placeholder="Mobile Number"
+              value={customerOtpForm.mobile}
+              onChange={handleCustomerOtpChange}
+              disabled={customerOtpSent}
+            />
+
+            {customerOtpSent && (
+              <input
+                type="text"
+                name="otp"
+                placeholder="Enter OTP"
+                value={customerOtpForm.otp}
+                onChange={handleCustomerOtpChange}
+              />
+            )}
+
+            <button type="submit">
+              {customerOtpSent ? "Verify OTP" : "Send OTP"}
+            </button>
+          </form>
+        </section>
+
+        <footer className="footer">
+          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
+        </footer>
+      </div>
+    );
+  }
+
+  if (page === "providerLogin") {
+    return (
+      <div className="site">
+        <header className="header">
+          <div className="brand">
+            <h1>Macky Nexus Services ⭐</h1>
+            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
+          </div>
+
+          <nav className="nav">
+            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
+              Home
+            </button>
+            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
+              Customer Login
+            </button>
+            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
+              Admin
+            </button>
+          </nav>
+        </header>
+
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Service Provider OTP Login</h2>
+            <p>Login with your mobile number and OTP.</p>
+          </div>
+
+          <form className="contact-form" onSubmit={providerOtpSent ? verifyProviderOtp : sendProviderOtp}>
+            <input
+              type="text"
+              name="mobile"
+              placeholder="Mobile Number"
+              value={providerOtpForm.mobile}
+              onChange={handleProviderOtpChange}
+              disabled={providerOtpSent}
+            />
+
+            {providerOtpSent && (
+              <input
+                type="text"
+                name="otp"
+                placeholder="Enter OTP"
+                value={providerOtpForm.otp}
+                onChange={handleProviderOtpChange}
+              />
+            )}
+
+            <button type="submit">
+              {providerOtpSent ? "Verify OTP" : "Send OTP"}
+            </button>
+          </form>
+        </section>
+
+        <footer className="footer">
+          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
+        </footer>
+      </div>
+    );
+  }
+
   if (page === "customer") {
     return (
       <div className="site">
@@ -238,8 +501,8 @@ const deleteProvider = async (id) => {
             <button className="nav-btn" type="button" onClick={() => setPage("home")}>
               Home
             </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("provider")}>
-              Service Provider
+            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
+              Service Provider Login
             </button>
             <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
               Admin
@@ -331,8 +594,8 @@ const deleteProvider = async (id) => {
             <button className="nav-btn" type="button" onClick={() => setPage("home")}>
               Home
             </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("customer")}>
-              Customer
+            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
+              Customer Login
             </button>
             <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
               Admin
@@ -424,11 +687,11 @@ const deleteProvider = async (id) => {
             <button className="nav-btn" type="button" onClick={() => setPage("home")}>
               Home
             </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("customer")}>
-              Customer
+            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
+              Customer Login
             </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("provider")}>
-              Provider
+            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
+              Provider Login
             </button>
           </nav>
         </header>
@@ -512,20 +775,20 @@ const deleteProvider = async (id) => {
                   <p><strong>Requirement:</strong> {item.requirement}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
                   <button
-  onClick={() => deleteCustomer(item.id)}
-  style={{
-    marginTop: "10px",
-    background: "#ff4d4f",
-    color: "#fff",
-    border: "none",
-    padding: "10px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "bold"
-  }}
->
-  Delete Permanently
-</button>
+                    onClick={() => deleteCustomer(item.id)}
+                    style={{
+                      marginTop: "10px",
+                      background: "#ff4d4f",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Delete Permanently
+                  </button>
                 </div>
               ))
             )}
@@ -556,20 +819,20 @@ const deleteProvider = async (id) => {
                   <p><strong>Details:</strong> {item.details}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
                   <button
-  onClick={() => deleteProvider(item.id)}
-  style={{
-    marginTop: "10px",
-    background: "#ff4d4f",
-    color: "#fff",
-    border: "none",
-    padding: "10px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "bold"
-  }}
->
-  Delete Permanently
-</button>
+                    onClick={() => deleteProvider(item.id)}
+                    style={{
+                      marginTop: "10px",
+                      background: "#ff4d4f",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Delete Permanently
+                  </button>
                 </div>
               ))
             )}
@@ -597,6 +860,12 @@ const deleteProvider = async (id) => {
           <a href="#roles">Roles</a>
           <a href="#why">Why Us</a>
           <a href="#contact">Contact</a>
+          <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
+            Customer Login
+          </button>
+          <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
+            Service Provider Login
+          </button>
           <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
             Admin
           </button>
@@ -622,14 +891,14 @@ const deleteProvider = async (id) => {
           </p>
 
           <div className="hero-buttons">
-            <button type="button" onClick={() => setPage("customer")}>
+            <button type="button" onClick={() => setPage("customerLogin")}>
               Customer Login
             </button>
 
             <button
               type="button"
               className="outline"
-              onClick={() => setPage("provider")}
+              onClick={() => setPage("providerLogin")}
             >
               Service Provider Login
             </button>
@@ -759,18 +1028,18 @@ const deleteProvider = async (id) => {
 
         <div className="dashboard-list">
           <div className="card">
-            <h3>Customer Requirement</h3>
-            <p>Open customer form and post your requirement.</p>
-            <button type="button" onClick={() => setPage("customer")}>
-              Open Customer Form
+            <h3>Customer Login</h3>
+            <p>Login with mobile OTP and open customer form.</p>
+            <button type="button" onClick={() => setPage("customerLogin")}>
+              Open Customer Login
             </button>
           </div>
 
           <div className="card">
-            <h3>Service Provider Registration</h3>
-            <p>Open provider form and register your services.</p>
-            <button type="button" onClick={() => setPage("provider")}>
-              Open Provider Form
+            <h3>Service Provider Login</h3>
+            <p>Login with mobile OTP and open provider form.</p>
+            <button type="button" onClick={() => setPage("providerLogin")}>
+              Open Provider Login
             </button>
           </div>
 
