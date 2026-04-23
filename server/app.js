@@ -97,9 +97,19 @@ app.post("/api/send-otp", async (req, res) => {
     });
 
     const data = await response.json();
+    console.log("MSG91 SEND OTP RESPONSE:", data);
 
-    return res.status(response.status).json({
-      ok: response.ok,
+    if (!response.ok) {
+      return res.status(400).json({
+        ok: false,
+        message: data.message || "Failed to send OTP",
+        data,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      message: "OTP sent successfully",
       data,
     });
   } catch (error) {
@@ -140,9 +150,28 @@ app.post("/api/verify-otp", async (req, res) => {
     });
 
     const data = await response.json();
+    console.log("MSG91 VERIFY RESPONSE:", data);
 
-    return res.status(response.status).json({
-      ok: response.ok,
+    const statusText = String(
+      data.type || data.message || data.status || ""
+    ).toLowerCase();
+
+    const isVerified =
+      statusText.includes("success") ||
+      statusText.includes("verified") ||
+      statusText.includes("otp verified");
+
+    if (!response.ok || !isVerified) {
+      return res.status(400).json({
+        ok: false,
+        message: data.message || "Invalid OTP",
+        data,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      message: "OTP verified successfully",
       data,
     });
   } catch (error) {
