@@ -67,6 +67,24 @@ function App() {
     setProviderOtpForm({ ...providerOtpForm, [e.target.name]: e.target.value });
   };
 
+  const resetCustomerOtpFlow = () => {
+    setCustomerOtpForm({
+      mobile: "",
+      otp: "",
+    });
+    setCustomerOtpSent(false);
+    setPage("home");
+  };
+
+  const resetProviderOtpFlow = () => {
+    setProviderOtpForm({
+      mobile: "",
+      otp: "",
+    });
+    setProviderOtpSent(false);
+    setPage("home");
+  };
+
   const handleCustomerSubmit = async (e) => {
     e.preventDefault();
 
@@ -232,7 +250,7 @@ function App() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.ok) {
         alert(data.message || data.data?.message || "Failed to send OTP");
         return;
       }
@@ -262,8 +280,8 @@ function App() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        alert(data.message || data.data?.message || "Invalid OTP");
+      if (!data.ok) {
+        alert(data.message || "Invalid OTP");
         return;
       }
 
@@ -291,7 +309,7 @@ function App() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.ok) {
         alert(data.message || data.data?.message || "Failed to send OTP");
         return;
       }
@@ -321,8 +339,8 @@ function App() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        alert(data.message || data.data?.message || "Invalid OTP");
+      if (!data.ok) {
+        alert(data.message || "Invalid OTP");
         return;
       }
 
@@ -394,7 +412,10 @@ function App() {
             <p>Login with your mobile number and OTP.</p>
           </div>
 
-          <form className="contact-form" onSubmit={customerOtpSent ? verifyCustomerOtp : sendCustomerOtp}>
+          <form
+            className="contact-form"
+            onSubmit={customerOtpSent ? verifyCustomerOtp : sendCustomerOtp}
+          >
             <input
               type="text"
               name="mobile"
@@ -417,6 +438,28 @@ function App() {
             <button type="submit">
               {customerOtpSent ? "Verify OTP" : "Send OTP"}
             </button>
+
+            {customerOtpSent && (
+              <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={sendCustomerOtp}
+                  style={{ flex: 1 }}
+                >
+                  Resend OTP
+                </button>
+
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={resetCustomerOtpFlow}
+                  style={{ flex: 1 }}
+                >
+                  Back
+                </button>
+              </div>
+            )}
           </form>
         </section>
 
@@ -455,7 +498,10 @@ function App() {
             <p>Login with your mobile number and OTP.</p>
           </div>
 
-          <form className="contact-form" onSubmit={providerOtpSent ? verifyProviderOtp : sendProviderOtp}>
+          <form
+            className="contact-form"
+            onSubmit={providerOtpSent ? verifyProviderOtp : sendProviderOtp}
+          >
             <input
               type="text"
               name="mobile"
@@ -478,6 +524,28 @@ function App() {
             <button type="submit">
               {providerOtpSent ? "Verify OTP" : "Send OTP"}
             </button>
+
+            {providerOtpSent && (
+              <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={sendProviderOtp}
+                  style={{ flex: 1 }}
+                >
+                  Resend OTP
+                </button>
+
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={resetProviderOtpFlow}
+                  style={{ flex: 1 }}
+                >
+                  Back
+                </button>
+              </div>
+            )}
           </form>
         </section>
 
