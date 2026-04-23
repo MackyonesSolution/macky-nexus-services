@@ -11,6 +11,9 @@ const ADMIN_EMAIL = "admin@mackynexus.com";
 const ADMIN_PASSWORD = "Macky143921";
 const ADMIN_TOKEN = "macky-admin-token";
 
+const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
+const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -63,6 +66,94 @@ app.get("/", (req, res) => {
   res.send("Backend working");
 });
 
+app.post("/api/send-otp", async (req, res) => {
+  try {
+    const mobile = String(req.body.mobile || "").trim();
+
+    if (!mobile) {
+      return res.status(400).json({
+        ok: false,
+        message: "Mobile number is required",
+      });
+    }
+
+    if (!MSG91_AUTH_KEY || !MSG91_TEMPLATE_ID) {
+      return res.status(500).json({
+        ok: false,
+        message: "MSG91 configuration missing",
+      });
+    }
+
+    const response = await fetch("https://control.msg91.com/api/v5/otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authkey: MSG91_AUTH_KEY,
+      },
+      body: JSON.stringify({
+        template_id: MSG91_TEMPLATE_ID,
+        mobile: `91${mobile}`,
+      }),
+    });
+
+    const data = await response.json();
+
+    return res.status(response.status).json({
+      ok: response.ok,
+      data,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to send OTP",
+    });
+  }
+});
+
+app.post("/api/verify-otp", async (req, res) => {
+  try {
+    const mobile = String(req.body.mobile || "").trim();
+    const otp = String(req.body.otp || "").trim();
+
+    if (!mobile || !otp) {
+      return res.status(400).json({
+        ok: false,
+        message: "Mobile number and OTP are required",
+      });
+    }
+
+    if (!MSG91_AUTH_KEY) {
+      return res.status(500).json({
+        ok: false,
+        message: "MSG91 configuration missing",
+      });
+    }
+
+    const url = `https://control.msg91.com/api/v5/otp/verify?mobile=91${mobile}&otp=${otp}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        authkey: MSG91_AUTH_KEY,
+      },
+    });
+
+    const data = await response.json();
+
+    return res.status(response.status).json({
+      ok: response.ok,
+      data,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to verify OTP",
+    });
+  }
+});
+
 app.post("/api/customer-requirements", async (req, res) => {
   try {
     const { name, phone, email, location, category, requirement } = req.body;
@@ -79,8 +170,15 @@ app.post("/api/customer-requirements", async (req, res) => {
       INSERT INTO customer_requirements
       (name, phone, email, location, category, requirement)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, phone, email, location, category, requirement,
-      TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
+      RETURNING
+        id,
+        name,
+        phone,
+        email,
+        location,
+        category,
+        requirement,
+        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
       `,
       [name, phone, email, location, category, requirement]
     );
@@ -101,9 +199,25 @@ app.post("/api/customer-requirements", async (req, res) => {
 
 app.post("/api/service-providers", async (req, res) => {
   try {
-    const { companyName, contactPerson, phone, email, serviceType, city, details } = req.body;
+    const {
+      companyName,
+      contactPerson,
+      phone,
+      email,
+      serviceType,
+      city,
+      details,
+    } = req.body;
 
-    if (!companyName || !contactPerson || !phone || !email || !serviceType || !city || !details) {
+    if (
+      !companyName ||
+      !contactPerson ||
+      !phone ||
+      !email ||
+      !serviceType ||
+      !city ||
+      !details
+    ) {
       return res.status(400).json({
         ok: false,
         message: "All provider fields are required",
@@ -115,15 +229,16 @@ app.post("/api/service-providers", async (req, res) => {
       INSERT INTO service_providers
       (company_name, contact_person, phone, email, service_type, city, details)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id,
-      company_name AS "companyName",
-      contact_person AS "contactPerson",
-      phone,
-      email,
-      service_type AS "serviceType",
-      city,
-      details,
-      TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
+      RETURNING
+        id,
+        company_name AS "companyName",
+        contact_person AS "contactPerson",
+        phone,
+        email,
+        service_type AS "serviceType",
+        city,
+        details,
+        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
       `,
       [companyName, contactPerson, phone, email, serviceType, city, details]
     );
