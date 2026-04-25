@@ -98,7 +98,7 @@ function App() {
       });
 
       const data = await res.json();
-      alert(data.message);
+      alert(data.message || "Requirement submitted");
 
       if (data.ok) {
         setCustomerForm({
@@ -129,7 +129,7 @@ function App() {
       });
 
       const data = await res.json();
-      alert(data.message);
+      alert(data.message || "Provider form submitted");
 
       if (data.ok) {
         setProviderForm({
@@ -237,6 +237,11 @@ function App() {
   const sendCustomerOtp = async (e) => {
     e.preventDefault();
 
+    if (!customerOtpForm.mobile.trim()) {
+      alert("Please enter mobile number");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
         method: "POST",
@@ -244,7 +249,7 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mobile: customerOtpForm.mobile,
+          mobile: customerOtpForm.mobile.trim(),
         }),
       });
 
@@ -256,6 +261,7 @@ function App() {
       }
 
       setCustomerOtpSent(true);
+      setCustomerOtpForm((prev) => ({ ...prev, otp: "" }));
       alert("OTP sent successfully");
     } catch (error) {
       alert("Failed to send OTP");
@@ -266,6 +272,11 @@ function App() {
   const verifyCustomerOtp = async (e) => {
     e.preventDefault();
 
+    if (!customerOtpForm.mobile.trim() || !customerOtpForm.otp.trim()) {
+      alert("Please enter OTP");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
         method: "POST",
@@ -273,8 +284,8 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mobile: customerOtpForm.mobile,
-          otp: customerOtpForm.otp,
+          mobile: customerOtpForm.mobile.trim(),
+          otp: customerOtpForm.otp.trim(),
         }),
       });
 
@@ -296,6 +307,11 @@ function App() {
   const sendProviderOtp = async (e) => {
     e.preventDefault();
 
+    if (!providerOtpForm.mobile.trim()) {
+      alert("Please enter mobile number");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
         method: "POST",
@@ -303,7 +319,7 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mobile: providerOtpForm.mobile,
+          mobile: providerOtpForm.mobile.trim(),
         }),
       });
 
@@ -315,6 +331,7 @@ function App() {
       }
 
       setProviderOtpSent(true);
+      setProviderOtpForm((prev) => ({ ...prev, otp: "" }));
       alert("OTP sent successfully");
     } catch (error) {
       alert("Failed to send OTP");
@@ -325,6 +342,11 @@ function App() {
   const verifyProviderOtp = async (e) => {
     e.preventDefault();
 
+    if (!providerOtpForm.mobile.trim() || !providerOtpForm.otp.trim()) {
+      alert("Please enter OTP");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
         method: "POST",
@@ -332,8 +354,8 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mobile: providerOtpForm.mobile,
-          otp: providerOtpForm.otp,
+          mobile: providerOtpForm.mobile.trim(),
+          otp: providerOtpForm.otp.trim(),
         }),
       });
 
@@ -365,7 +387,7 @@ function App() {
       });
 
       const data = await res.json();
-      alert(data.message);
+      alert(data.message || "Admin login response received");
 
       if (data.ok) {
         setAdminToken(data.token);
