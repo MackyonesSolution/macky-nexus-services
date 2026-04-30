@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 
@@ -11,9 +12,6 @@ const ADMIN_EMAIL = "admin@mackynexus.com";
 const ADMIN_PASSWORD = "Macky143921";
 const ADMIN_TOKEN = "macky-admin-token";
 
-const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
-const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID;
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -23,13 +21,26 @@ const pool = new Pool({
 
 async function initDatabase() {
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      role VARCHAR(30) NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      mobile VARCHAR(20) UNIQUE NOT NULL,
+      email VARCHAR(150) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS customer_requirements (
-      id BIGSERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      email TEXT NOT NULL,
-      location TEXT NOT NULL,
-      category TEXT NOT NULL,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      name VARCHAR(120) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      email VARCHAR(150),
+      location VARCHAR(150) NOT NULL,
+      category VARCHAR(120) NOT NULL,
       requirement TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -37,188 +48,227 @@ async function initDatabase() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS service_providers (
-      id BIGSERIAL PRIMARY KEY,
-      company_name TEXT NOT NULL,
-      contact_person TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      email TEXT NOT NULL,
-      service_type TEXT NOT NULL,
-      city TEXT NOT NULL,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      company_name VARCHAR(150) NOT NULL,
+      contact_person VARCHAR(120) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      email VARCHAR(150),
+      service_type VARCHAR(150) NOT NULL,
+      city VARCHAR(120) NOT NULL,
       details TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 }
 
-function checkAdmin(req, res) {
-  const token = req.headers["x-admin-token"];
-  if (token !== ADMIN_TOKEN) {
-    res.status(401).json({
-      ok: false,
-      message: "Unauthorized",
-    });
-    return false;
-  }
-  return true;
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "Backend working" });
+});
+
+function formatRows(rows) {
+  return rows.map((row) => ({
+    ...row,
+    createdAt: row.created_at
+      ? new Date(row.created_at).toLocaleString("en-IN")
+      : "",
+  }));
 }
 
-app.get("/", (req, res) => {
-  res.send("Backend working");
-});
+function validateEmail(email) {
+  return /\S+@\S+\.\S+/.test(email);
+}
 
-app.post("/api/send-otp", async (req, res) => {
+function validatePassword(password) {
+  return typeof password === "string" && password.length >= 6;
+}
+
+app.post("/api/auth/signup", async (req, res) => {
   try {
-    const mobile = String(req.body.mobile || "").trim();
+    const { role, name, mobile, email, password } = req.body;
 
-    if (!mobile) {
+    if (!role || !name || !mobile || !email || !password) {
       return res.status(400).json({
         ok: false,
-        message: "Mobile number is required",
+        message: "All fields are required",
       });
     }
 
-    if (!MSG91_AUTH_KEY || !MSG91_TEMPLATE_ID) {
-      return res.status(500).json({
-        ok: false,
-        message: "MSG91 configuration missing",
-      });
-    }
-
-    const response = await fetch("https://control.msg91.com/api/v5/otp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        authkey: MSG91_AUTH_KEY,
-      },
-      body: JSON.stringify({
-        template_id: MSG91_TEMPLATE_ID,
-        mobile: `91${mobile}`,
-      }),
-    });
-
-    const data = await response.json();
-    console.log("MSG91 SEND OTP RESPONSE:", data);
-
-    if (!response.ok) {
+    if (!["customer", "provider"].includes(role)) {
       return res.status(400).json({
         ok: false,
-        message: data.message || "Failed to send OTP",
-        data,
+        message: "Invalid role",
       });
     }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid email address",
+      });
+    }
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const existingUser = await pool.query(
+      `SELECT id FROM users WHERE email = $1 OR mobile = $2`,
+      [email.trim().toLowerCase(), mobile.trim()]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        ok: false,
+        message: "User already exists with this email or mobile",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (role, name, mobile, email, password)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, role, name, mobile, email, created_at`,
+      [role, name.trim(), mobile.trim(), email.trim().toLowerCase(), hashedPassword]
+    );
 
     return res.json({
       ok: true,
-      message: "OTP sent successfully",
-      data,
+      message: `${role === "customer" ? "Customer" : "Service Provider"} signup successful`,
+      user: {
+        id: result.rows[0].id,
+        role: result.rows[0].role,
+        name: result.rows[0].name,
+        mobile: result.rows[0].mobile,
+        email: result.rows[0].email,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Signup error:", error);
     return res.status(500).json({
       ok: false,
-      message: "Failed to send OTP",
+      message: "Server error during signup",
     });
   }
 });
 
-app.post("/api/verify-otp", async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
-    const mobile = String(req.body.mobile || "").trim();
-    const otp = String(req.body.otp || "").trim();
+    const { role, login, password } = req.body;
 
-    if (!mobile || !otp) {
+    if (!role || !login || !password) {
       return res.status(400).json({
         ok: false,
-        message: "Mobile number and OTP are required",
+        message: "Role, login and password are required",
       });
     }
 
-    if (!MSG91_AUTH_KEY) {
-      return res.status(500).json({
+    if (!["customer", "provider"].includes(role)) {
+      return res.status(400).json({
         ok: false,
-        message: "MSG91 configuration missing",
+        message: "Invalid role",
       });
     }
 
-    const url = `https://control.msg91.com/api/v5/otp/verify?mobile=91${mobile}&otp=${otp}`;
+    const userResult = await pool.query(
+      `SELECT * FROM users
+       WHERE role = $1 AND (email = $2 OR mobile = $2)
+       LIMIT 1`,
+      [role, login.trim().toLowerCase()]
+    );
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        authkey: MSG91_AUTH_KEY,
-      },
-    });
+    let user = userResult.rows[0];
 
-    const data = await response.json();
-    console.log("MSG91 VERIFY RESPONSE:", data);
+    if (!user) {
+      const altUserResult = await pool.query(
+        `SELECT * FROM users
+         WHERE role = $1 AND mobile = $2
+         LIMIT 1`,
+        [role, login.trim()]
+      );
+      user = altUserResult.rows[0];
+    }
 
-    const statusText = String(
-      data.type || data.message || data.status || ""
-    ).toLowerCase();
-
-    const isVerified =
-      statusText.includes("success") ||
-      statusText.includes("verified") ||
-      statusText.includes("otp verified");
-
-    if (!response.ok || !isVerified) {
-      return res.status(400).json({
+    if (!user) {
+      return res.status(401).json({
         ok: false,
-        message: data.message || "Invalid OTP",
-        data,
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        ok: false,
+        message: "Invalid password",
       });
     }
 
     return res.json({
       ok: true,
-      message: "OTP verified successfully",
-      data,
+      message: "Login successful",
+      user: {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     return res.status(500).json({
       ok: false,
-      message: "Failed to verify OTP",
+      message: "Server error during login",
     });
   }
 });
 
 app.post("/api/customer-requirements", async (req, res) => {
   try {
-    const { name, phone, email, location, category, requirement } = req.body;
+    const {
+      userId,
+      name,
+      phone,
+      email,
+      location,
+      category,
+      requirement,
+    } = req.body;
 
-    if (!name || !phone || !email || !location || !category || !requirement) {
+    if (!name || !phone || !location || !category || !requirement) {
       return res.status(400).json({
         ok: false,
-        message: "All customer fields are required",
+        message: "Required fields missing",
       });
     }
 
-    const result = await pool.query(
-      `
-      INSERT INTO customer_requirements
-      (name, phone, email, location, category, requirement)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING
-        id,
-        name,
-        phone,
-        email,
-        location,
-        category,
-        requirement,
-        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
-      `,
-      [name, phone, email, location, category, requirement]
+    await pool.query(
+      `INSERT INTO customer_requirements
+      (user_id, name, phone, email, location, category, requirement)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        userId || null,
+        name.trim(),
+        phone.trim(),
+        email ? email.trim().toLowerCase() : "",
+        location.trim(),
+        category.trim(),
+        requirement.trim(),
+      ]
     );
 
     return res.json({
       ok: true,
       message: "Customer requirement submitted successfully",
-      data: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Customer requirement error:", error);
     return res.status(500).json({
       ok: false,
       message: "Server error",
@@ -229,6 +279,7 @@ app.post("/api/customer-requirements", async (req, res) => {
 app.post("/api/service-providers", async (req, res) => {
   try {
     const {
+      userId,
       companyName,
       contactPerson,
       phone,
@@ -238,47 +289,35 @@ app.post("/api/service-providers", async (req, res) => {
       details,
     } = req.body;
 
-    if (
-      !companyName ||
-      !contactPerson ||
-      !phone ||
-      !email ||
-      !serviceType ||
-      !city ||
-      !details
-    ) {
+    if (!companyName || !contactPerson || !phone || !serviceType || !city || !details) {
       return res.status(400).json({
         ok: false,
-        message: "All provider fields are required",
+        message: "Required fields missing",
       });
     }
 
-    const result = await pool.query(
-      `
-      INSERT INTO service_providers
-      (company_name, contact_person, phone, email, service_type, city, details)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING
-        id,
-        company_name AS "companyName",
-        contact_person AS "contactPerson",
-        phone,
-        email,
-        service_type AS "serviceType",
-        city,
-        details,
-        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
-      `,
-      [companyName, contactPerson, phone, email, serviceType, city, details]
+    await pool.query(
+      `INSERT INTO service_providers
+      (user_id, company_name, contact_person, phone, email, service_type, city, details)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        userId || null,
+        companyName.trim(),
+        contactPerson.trim(),
+        phone.trim(),
+        email ? email.trim().toLowerCase() : "",
+        serviceType.trim(),
+        city.trim(),
+        details.trim(),
+      ]
     );
 
     return res.json({
       ok: true,
       message: "Service provider registered successfully",
-      data: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Service provider error:", error);
     return res.status(500).json({
       ok: false,
       message: "Server error",
@@ -287,70 +326,73 @@ app.post("/api/service-providers", async (req, res) => {
 });
 
 app.post("/api/admin/login", (req, res) => {
-  try {
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "").trim();
+  const { email, password } = req.body;
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      return res.json({
-        ok: true,
-        message: "Admin login successful",
-        token: ADMIN_TOKEN,
-      });
-    }
-
-    return res.status(401).json({
-      ok: false,
-      message: "Invalid admin email or password",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      message: "Server error",
+  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    return res.json({
+      ok: true,
+      message: "Admin login successful",
+      token: ADMIN_TOKEN,
     });
   }
+
+  return res.status(401).json({
+    ok: false,
+    message: "Invalid admin credentials",
+  });
 });
 
 app.get("/api/admin/dashboard", async (req, res) => {
   try {
-    if (!checkAdmin(req, res)) return;
+    const token = req.headers["x-admin-token"];
 
-    const customers = await pool.query(`
-      SELECT
+    if (token !== ADMIN_TOKEN) {
+      return res.status(401).json({
+        ok: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const customerRequirements = await pool.query(
+      `SELECT * FROM customer_requirements ORDER BY id DESC`
+    );
+
+    const serviceProviders = await pool.query(
+      `SELECT
         id,
-        name,
+        company_name,
+        contact_person,
         phone,
         email,
-        location,
-        category,
-        requirement,
-        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
-      FROM customer_requirements
-      ORDER BY id DESC
-    `);
-
-    const providers = await pool.query(`
-      SELECT
-        id,
-        company_name AS "companyName",
-        contact_person AS "contactPerson",
-        phone,
-        email,
-        service_type AS "serviceType",
+        service_type,
         city,
         details,
-        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS "createdAt"
+        created_at
       FROM service_providers
-      ORDER BY id DESC
-    `);
+      ORDER BY id DESC`
+    );
+
+    const formattedProviders = serviceProviders.rows.map((row) => ({
+      id: row.id,
+      companyName: row.company_name,
+      contactPerson: row.contact_person,
+      phone: row.phone,
+      email: row.email,
+      serviceType: row.service_type,
+      city: row.city,
+      details: row.details,
+      createdAt: row.created_at
+        ? new Date(row.created_at).toLocaleString("en-IN")
+        : "",
+    }));
 
     return res.json({
       ok: true,
-      customerRequirements: customers.rows,
-      serviceProviders: providers.rows,
+      customerRequirements: formatRows(customerRequirements.rows),
+      serviceProviders: formattedProviders,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Dashboard error:", error);
     return res.status(500).json({
       ok: false,
       message: "Server error",
@@ -360,19 +402,25 @@ app.get("/api/admin/dashboard", async (req, res) => {
 
 app.delete("/api/admin/customer-requirements/:id", async (req, res) => {
   try {
-    if (!checkAdmin(req, res)) return;
+    const token = req.headers["x-admin-token"];
 
-    await pool.query(
-      `DELETE FROM customer_requirements WHERE id = $1`,
-      [req.params.id]
-    );
+    if (token !== ADMIN_TOKEN) {
+      return res.status(401).json({
+        ok: false,
+        message: "Unauthorized",
+      });
+    }
+
+    await pool.query(`DELETE FROM customer_requirements WHERE id = $1`, [
+      req.params.id,
+    ]);
 
     return res.json({
       ok: true,
-      message: "Customer requirement deleted permanently",
+      message: "Customer deleted successfully",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Delete customer error:", error);
     return res.status(500).json({
       ok: false,
       message: "Server error",
@@ -382,19 +430,25 @@ app.delete("/api/admin/customer-requirements/:id", async (req, res) => {
 
 app.delete("/api/admin/service-providers/:id", async (req, res) => {
   try {
-    if (!checkAdmin(req, res)) return;
+    const token = req.headers["x-admin-token"];
 
-    await pool.query(
-      `DELETE FROM service_providers WHERE id = $1`,
-      [req.params.id]
-    );
+    if (token !== ADMIN_TOKEN) {
+      return res.status(401).json({
+        ok: false,
+        message: "Unauthorized",
+      });
+    }
+
+    await pool.query(`DELETE FROM service_providers WHERE id = $1`, [
+      req.params.id,
+    ]);
 
     return res.json({
       ok: true,
-      message: "Service provider deleted permanently",
+      message: "Service provider deleted successfully",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Delete provider error:", error);
     return res.status(500).json({
       ok: false,
       message: "Server error",

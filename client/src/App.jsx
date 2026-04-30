@@ -7,8 +7,36 @@ const API_BASE_URL =
 function App() {
   const [page, setPage] = useState("home");
   const [adminToken, setAdminToken] = useState("");
+  const [adminForm, setAdminForm] = useState({ email: "", password: "" });
   const [customerList, setCustomerList] = useState([]);
   const [providerList, setProviderList] = useState([]);
+
+  const [customerSignup, setCustomerSignup] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    password: "",
+  });
+
+  const [providerSignup, setProviderSignup] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    password: "",
+  });
+
+  const [customerLogin, setCustomerLogin] = useState({
+    login: "",
+    password: "",
+  });
+
+  const [providerLogin, setProviderLogin] = useState({
+    login: "",
+    password: "",
+  });
+
+  const [loggedCustomer, setLoggedCustomer] = useState(null);
+  const [loggedProvider, setLoggedProvider] = useState(null);
 
   const [customerForm, setCustomerForm] = useState({
     name: "",
@@ -29,121 +57,226 @@ function App() {
     details: "",
   });
 
-  const [adminForm, setAdminForm] = useState({
-    email: "",
-    password: "",
-  });
-
-  const [customerOtpForm, setCustomerOtpForm] = useState({
-    mobile: "",
-    otp: "",
-  });
-
-  const [providerOtpForm, setProviderOtpForm] = useState({
-    mobile: "",
-    otp: "",
-  });
-
-  const [customerOtpSent, setCustomerOtpSent] = useState(false);
-  const [providerOtpSent, setProviderOtpSent] = useState(false);
-
-  const handleCustomerChange = (e) => {
-    setCustomerForm({ ...customerForm, [e.target.name]: e.target.value });
-  };
-
-  const handleProviderChange = (e) => {
-    setProviderForm({ ...providerForm, [e.target.name]: e.target.value });
-  };
-
   const handleAdminChange = (e) => {
     setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
   };
 
-  const handleCustomerOtpChange = (e) => {
-    setCustomerOtpForm({ ...customerOtpForm, [e.target.name]: e.target.value });
+  const handleCustomerSignupChange = (e) => {
+    setCustomerSignup({ ...customerSignup, [e.target.name]: e.target.value });
   };
 
-  const handleProviderOtpChange = (e) => {
-    setProviderOtpForm({ ...providerOtpForm, [e.target.name]: e.target.value });
+  const handleProviderSignupChange = (e) => {
+    setProviderSignup({ ...providerSignup, [e.target.name]: e.target.value });
   };
 
-  const resetCustomerOtpFlow = () => {
-    setCustomerOtpForm({
-      mobile: "",
-      otp: "",
-    });
-    setCustomerOtpSent(false);
-    setPage("home");
+  const handleCustomerLoginChange = (e) => {
+    setCustomerLogin({ ...customerLogin, [e.target.name]: e.target.value });
   };
 
-  const resetProviderOtpFlow = () => {
-    setProviderOtpForm({
-      mobile: "",
-      otp: "",
-    });
-    setProviderOtpSent(false);
-    setPage("home");
+  const handleProviderLoginChange = (e) => {
+    setProviderLogin({ ...providerLogin, [e.target.name]: e.target.value });
   };
 
-  const handleCustomerSubmit = async (e) => {
+  const handleCustomerFormChange = (e) => {
+    setCustomerForm({ ...customerForm, [e.target.name]: e.target.value });
+  };
+
+  const handleProviderFormChange = (e) => {
+    setProviderForm({ ...providerForm, [e.target.name]: e.target.value });
+  };
+
+  const customerSignupSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "customer",
+          name: customerSignup.name,
+          mobile: customerSignup.mobile,
+          email: customerSignup.email,
+          password: customerSignup.password,
+        }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setCustomerSignup({ name: "", mobile: "", email: "", password: "" });
+        setPage("customerLogin");
+      }
+    } catch (error) {
+      alert("Customer signup failed");
+      console.log(error);
+    }
+  };
+
+  const providerSignupSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "provider",
+          name: providerSignup.name,
+          mobile: providerSignup.mobile,
+          email: providerSignup.email,
+          password: providerSignup.password,
+        }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setProviderSignup({ name: "", mobile: "", email: "", password: "" });
+        setPage("providerLogin");
+      }
+    } catch (error) {
+      alert("Provider signup failed");
+      console.log(error);
+    }
+  };
+
+  const customerLoginSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "customer",
+          login: customerLogin.login,
+          password: customerLogin.password,
+        }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setLoggedCustomer(data.user);
+        setCustomerForm({
+          name: data.user.name || "",
+          phone: data.user.mobile || "",
+          email: data.user.email || "",
+          location: "",
+          category: "",
+          requirement: "",
+        });
+        setCustomerLogin({ login: "", password: "" });
+        setPage("customer");
+      }
+    } catch (error) {
+      alert("Customer login failed");
+      console.log(error);
+    }
+  };
+
+  const providerLoginSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "provider",
+          login: providerLogin.login,
+          password: providerLogin.password,
+        }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setLoggedProvider(data.user);
+        setProviderForm({
+          companyName: "",
+          contactPerson: data.user.name || "",
+          phone: data.user.mobile || "",
+          email: data.user.email || "",
+          serviceType: "",
+          city: "",
+          details: "",
+        });
+        setProviderLogin({ login: "", password: "" });
+        setPage("provider");
+      }
+    } catch (error) {
+      alert("Provider login failed");
+      console.log(error);
+    }
+  };
+
+  const customerFormSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/customer-requirements`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(customerForm),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: loggedCustomer?.id || null,
+          ...customerForm,
+        }),
       });
 
       const data = await res.json();
-      alert(data.message || "Requirement submitted");
+      alert(data.message);
 
       if (data.ok) {
         setCustomerForm({
-          name: "",
-          phone: "",
-          email: "",
+          name: loggedCustomer?.name || "",
+          phone: loggedCustomer?.mobile || "",
+          email: loggedCustomer?.email || "",
           location: "",
           category: "",
           requirement: "",
         });
       }
     } catch (error) {
-      alert("Customer form submission failed");
+      alert("Customer form submit failed");
       console.log(error);
     }
   };
 
-  const handleProviderSubmit = async (e) => {
+  const providerFormSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/service-providers`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(providerForm),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: loggedProvider?.id || null,
+          ...providerForm,
+        }),
       });
 
       const data = await res.json();
-      alert(data.message || "Provider form submitted");
+      alert(data.message);
 
       if (data.ok) {
         setProviderForm({
           companyName: "",
-          contactPerson: "",
-          phone: "",
-          email: "",
+          contactPerson: loggedProvider?.name || "",
+          phone: loggedProvider?.mobile || "",
+          email: loggedProvider?.email || "",
           serviceType: "",
           city: "",
           details: "",
         });
       }
     } catch (error) {
-      alert("Provider form submission failed");
+      alert("Provider form submit failed");
       console.log(error);
     }
   };
@@ -170,224 +303,18 @@ function App() {
     }
   };
 
-  const deleteCustomer = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this customer permanently?"
-    );
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/admin/customer-requirements/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "x-admin-token": adminToken,
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Failed to delete customer");
-        return;
-      }
-
-      alert("Customer deleted permanently");
-      loadDashboard();
-    } catch (error) {
-      alert("Server error while deleting customer");
-      console.log(error);
-    }
-  };
-
-  const deleteProvider = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this provider permanently?"
-    );
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/admin/service-providers/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "x-admin-token": adminToken,
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Failed to delete provider");
-        return;
-      }
-
-      alert("Provider deleted permanently");
-      loadDashboard();
-    } catch (error) {
-      alert("Server error while deleting provider");
-      console.log(error);
-    }
-  };
-
-  const sendCustomerOtp = async (e) => {
-    e.preventDefault();
-
-    if (!customerOtpForm.mobile.trim()) {
-      alert("Please enter mobile number");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobile: customerOtpForm.mobile.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        alert(data.message || data.data?.message || "Failed to send OTP");
-        return;
-      }
-
-      setCustomerOtpSent(true);
-      setCustomerOtpForm((prev) => ({ ...prev, otp: "" }));
-      alert("OTP sent successfully");
-    } catch (error) {
-      alert("Failed to send OTP");
-      console.log(error);
-    }
-  };
-
-  const verifyCustomerOtp = async (e) => {
-    e.preventDefault();
-
-    if (!customerOtpForm.mobile.trim() || !customerOtpForm.otp.trim()) {
-      alert("Please enter OTP");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobile: customerOtpForm.mobile.trim(),
-          otp: customerOtpForm.otp.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        alert(data.message || "Invalid OTP");
-        return;
-      }
-
-      alert("Customer login successful");
-      setPage("customer");
-    } catch (error) {
-      alert("OTP verification failed");
-      console.log(error);
-    }
-  };
-
-  const sendProviderOtp = async (e) => {
-    e.preventDefault();
-
-    if (!providerOtpForm.mobile.trim()) {
-      alert("Please enter mobile number");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/send-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobile: providerOtpForm.mobile.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        alert(data.message || data.data?.message || "Failed to send OTP");
-        return;
-      }
-
-      setProviderOtpSent(true);
-      setProviderOtpForm((prev) => ({ ...prev, otp: "" }));
-      alert("OTP sent successfully");
-    } catch (error) {
-      alert("Failed to send OTP");
-      console.log(error);
-    }
-  };
-
-  const verifyProviderOtp = async (e) => {
-    e.preventDefault();
-
-    if (!providerOtpForm.mobile.trim() || !providerOtpForm.otp.trim()) {
-      alert("Please enter OTP");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/verify-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobile: providerOtpForm.mobile.trim(),
-          otp: providerOtpForm.otp.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        alert(data.message || "Invalid OTP");
-        return;
-      }
-
-      alert("Service Provider login successful");
-      setPage("provider");
-    } catch (error) {
-      alert("OTP verification failed");
-      console.log(error);
-    }
-  };
-
-  const handleAdminLogin = async (e) => {
+  const adminLoginSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(adminForm),
       });
 
       const data = await res.json();
-      alert(data.message || "Admin login response received");
+      alert(data.message);
 
       if (data.ok) {
         setAdminToken(data.token);
@@ -400,94 +327,134 @@ function App() {
     }
   };
 
+  const deleteCustomer = async (id) => {
+    const ok = window.confirm("Delete this customer permanently?");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/customer-requirements/${id}`,
+        {
+          method: "DELETE",
+          headers: { "x-admin-token": adminToken },
+        }
+      );
+
+      const data = await res.json();
+      alert(data.message);
+      if (data.ok) loadDashboard();
+    } catch (error) {
+      alert("Delete failed");
+      console.log(error);
+    }
+  };
+
+  const deleteProvider = async (id) => {
+    const ok = window.confirm("Delete this provider permanently?");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/service-providers/${id}`,
+        {
+          method: "DELETE",
+          headers: { "x-admin-token": adminToken },
+        }
+      );
+
+      const data = await res.json();
+      alert(data.message);
+      if (data.ok) loadDashboard();
+    } catch (error) {
+      alert("Delete failed");
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     if (page === "adminDashboard" && adminToken) {
       loadDashboard(adminToken);
     }
   }, [page, adminToken]);
 
+  if (page === "customerSignup") {
+    return (
+      <div className="site">
+        <Header setPage={setPage} />
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Customer Signup</h2>
+            <p>Create your customer account</p>
+          </div>
+
+          <form className="contact-form" onSubmit={customerSignupSubmit}>
+            <input type="text" name="name" placeholder="Full Name" value={customerSignup.name} onChange={handleCustomerSignupChange} />
+            <input type="text" name="mobile" placeholder="Mobile Number" value={customerSignup.mobile} onChange={handleCustomerSignupChange} />
+            <input type="email" name="email" placeholder="Email Address" value={customerSignup.email} onChange={handleCustomerSignupChange} />
+            <input type="password" name="password" placeholder="Password" value={customerSignup.password} onChange={handleCustomerSignupChange} />
+            <button type="submit">Create Customer Account</button>
+          </form>
+
+          <div className="admin-note">
+            <p>Already have an account?</p>
+            <button type="button" onClick={() => setPage("customerLogin")}>Go to Customer Login</button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
   if (page === "customerLogin") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
-              Service Provider Login
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
-              Admin
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
-            <h2>Customer OTP Login</h2>
-            <p>Login with your mobile number and OTP.</p>
+            <h2>Customer Login</h2>
+            <p>Login with email or mobile and password</p>
           </div>
 
-          <form
-            className="contact-form"
-            onSubmit={customerOtpSent ? verifyCustomerOtp : sendCustomerOtp}
-          >
-            <input
-              type="text"
-              name="mobile"
-              placeholder="Mobile Number"
-              value={customerOtpForm.mobile}
-              onChange={handleCustomerOtpChange}
-              disabled={customerOtpSent}
-            />
-
-            {customerOtpSent && (
-              <input
-                type="text"
-                name="otp"
-                placeholder="Enter OTP"
-                value={customerOtpForm.otp}
-                onChange={handleCustomerOtpChange}
-              />
-            )}
-
-            <button type="submit">
-              {customerOtpSent ? "Verify OTP" : "Send OTP"}
-            </button>
-
-            {customerOtpSent && (
-              <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  className="outline"
-                  onClick={sendCustomerOtp}
-                  style={{ flex: 1 }}
-                >
-                  Resend OTP
-                </button>
-
-                <button
-                  type="button"
-                  className="outline"
-                  onClick={resetCustomerOtpFlow}
-                  style={{ flex: 1 }}
-                >
-                  Back
-                </button>
-              </div>
-            )}
+          <form className="contact-form" onSubmit={customerLoginSubmit}>
+            <input type="text" name="login" placeholder="Email or Mobile" value={customerLogin.login} onChange={handleCustomerLoginChange} />
+            <input type="password" name="password" placeholder="Password" value={customerLogin.password} onChange={handleCustomerLoginChange} />
+            <button type="submit">Login as Customer</button>
           </form>
-        </section>
 
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+          <div className="admin-note">
+            <p>New customer?</p>
+            <button type="button" onClick={() => setPage("customerSignup")}>Create Customer Account</button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (page === "providerSignup") {
+    return (
+      <div className="site">
+        <Header setPage={setPage} />
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Service Provider Signup</h2>
+            <p>Create your provider account</p>
+          </div>
+
+          <form className="contact-form" onSubmit={providerSignupSubmit}>
+            <input type="text" name="name" placeholder="Contact Person Name" value={providerSignup.name} onChange={handleProviderSignupChange} />
+            <input type="text" name="mobile" placeholder="Mobile Number" value={providerSignup.mobile} onChange={handleProviderSignupChange} />
+            <input type="email" name="email" placeholder="Email Address" value={providerSignup.email} onChange={handleProviderSignupChange} />
+            <input type="password" name="password" placeholder="Password" value={providerSignup.password} onChange={handleProviderSignupChange} />
+            <button type="submit">Create Provider Account</button>
+          </form>
+
+          <div className="admin-note">
+            <p>Already have an account?</p>
+            <button type="button" onClick={() => setPage("providerLogin")}>Go to Provider Login</button>
+          </div>
+        </section>
+        <Footer />
       </div>
     );
   }
@@ -495,85 +462,25 @@ function App() {
   if (page === "providerLogin") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
-              Customer Login
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
-              Admin
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
-            <h2>Service Provider OTP Login</h2>
-            <p>Login with your mobile number and OTP.</p>
+            <h2>Service Provider Login</h2>
+            <p>Login with email or mobile and password</p>
           </div>
 
-          <form
-            className="contact-form"
-            onSubmit={providerOtpSent ? verifyProviderOtp : sendProviderOtp}
-          >
-            <input
-              type="text"
-              name="mobile"
-              placeholder="Mobile Number"
-              value={providerOtpForm.mobile}
-              onChange={handleProviderOtpChange}
-              disabled={providerOtpSent}
-            />
-
-            {providerOtpSent && (
-              <input
-                type="text"
-                name="otp"
-                placeholder="Enter OTP"
-                value={providerOtpForm.otp}
-                onChange={handleProviderOtpChange}
-              />
-            )}
-
-            <button type="submit">
-              {providerOtpSent ? "Verify OTP" : "Send OTP"}
-            </button>
-
-            {providerOtpSent && (
-              <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  className="outline"
-                  onClick={sendProviderOtp}
-                  style={{ flex: 1 }}
-                >
-                  Resend OTP
-                </button>
-
-                <button
-                  type="button"
-                  className="outline"
-                  onClick={resetProviderOtpFlow}
-                  style={{ flex: 1 }}
-                >
-                  Back
-                </button>
-              </div>
-            )}
+          <form className="contact-form" onSubmit={providerLoginSubmit}>
+            <input type="text" name="login" placeholder="Email or Mobile" value={providerLogin.login} onChange={handleProviderLoginChange} />
+            <input type="password" name="password" placeholder="Password" value={providerLogin.password} onChange={handleProviderLoginChange} />
+            <button type="submit">Login as Service Provider</button>
           </form>
-        </section>
 
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+          <div className="admin-note">
+            <p>New service provider?</p>
+            <button type="button" onClick={() => setPage("providerSignup")}>Create Provider Account</button>
+          </div>
+        </section>
+        <Footer />
       </div>
     );
   }
@@ -581,68 +488,22 @@ function App() {
   if (page === "customer") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
-              Service Provider Login
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
-              Admin
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
             <h2>Customer Requirement Form</h2>
-            <p>Post your requirement and connect with the right service provider.</p>
+            <p>Welcome, {loggedCustomer?.name}</p>
           </div>
 
-          <form className="contact-form" onSubmit={handleCustomerSubmit}>
+          <form className="contact-form" onSubmit={customerFormSubmit}>
             <div className="form-grid">
-              <input
-                type="text"
-                name="name"
-                placeholder="Your Name"
-                value={customerForm.name}
-                onChange={handleCustomerChange}
-              />
-              <input
-                type="text"
-                name="phone"
-                placeholder="Phone Number"
-                value={customerForm.phone}
-                onChange={handleCustomerChange}
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                value={customerForm.email}
-                onChange={handleCustomerChange}
-              />
-              <input
-                type="text"
-                name="location"
-                placeholder="Location / City"
-                value={customerForm.location}
-                onChange={handleCustomerChange}
-              />
+              <input type="text" name="name" placeholder="Your Name" value={customerForm.name} onChange={handleCustomerFormChange} />
+              <input type="text" name="phone" placeholder="Phone Number" value={customerForm.phone} onChange={handleCustomerFormChange} />
+              <input type="email" name="email" placeholder="Email Address" value={customerForm.email} onChange={handleCustomerFormChange} />
+              <input type="text" name="location" placeholder="Location / City" value={customerForm.location} onChange={handleCustomerFormChange} />
             </div>
 
-            <select
-              name="category"
-              value={customerForm.category}
-              onChange={handleCustomerChange}
-            >
+            <select name="category" value={customerForm.category} onChange={handleCustomerFormChange}>
               <option value="">Select Service Category</option>
               <option value="Vendor Requirement">Vendor Requirement</option>
               <option value="Solar Service">Solar Service</option>
@@ -657,16 +518,13 @@ function App() {
               placeholder="Write your requirement here"
               rows="6"
               value={customerForm.requirement}
-              onChange={handleCustomerChange}
+              onChange={handleCustomerFormChange}
             ></textarea>
 
             <button type="submit">Submit Requirement</button>
           </form>
         </section>
-
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
@@ -674,75 +532,21 @@ function App() {
   if (page === "provider") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
-              Customer Login
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
-              Admin
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
-            <h2>Service Provider Registration Form</h2>
-            <p>Register your services and grow your business through the platform.</p>
+            <h2>Service Provider Form</h2>
+            <p>Welcome, {loggedProvider?.name}</p>
           </div>
 
-          <form className="contact-form" onSubmit={handleProviderSubmit}>
+          <form className="contact-form" onSubmit={providerFormSubmit}>
             <div className="form-grid">
-              <input
-                type="text"
-                name="companyName"
-                placeholder="Company / Business Name"
-                value={providerForm.companyName}
-                onChange={handleProviderChange}
-              />
-              <input
-                type="text"
-                name="contactPerson"
-                placeholder="Contact Person Name"
-                value={providerForm.contactPerson}
-                onChange={handleProviderChange}
-              />
-              <input
-                type="text"
-                name="phone"
-                placeholder="Phone Number"
-                value={providerForm.phone}
-                onChange={handleProviderChange}
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                value={providerForm.email}
-                onChange={handleProviderChange}
-              />
-              <input
-                type="text"
-                name="serviceType"
-                placeholder="Service Type"
-                value={providerForm.serviceType}
-                onChange={handleProviderChange}
-              />
-              <input
-                type="text"
-                name="city"
-                placeholder="City / Location"
-                value={providerForm.city}
-                onChange={handleProviderChange}
-              />
+              <input type="text" name="companyName" placeholder="Company / Business Name" value={providerForm.companyName} onChange={handleProviderFormChange} />
+              <input type="text" name="contactPerson" placeholder="Contact Person Name" value={providerForm.contactPerson} onChange={handleProviderFormChange} />
+              <input type="text" name="phone" placeholder="Phone Number" value={providerForm.phone} onChange={handleProviderFormChange} />
+              <input type="email" name="email" placeholder="Email Address" value={providerForm.email} onChange={handleProviderFormChange} />
+              <input type="text" name="serviceType" placeholder="Service Type" value={providerForm.serviceType} onChange={handleProviderFormChange} />
+              <input type="text" name="city" placeholder="City / Location" value={providerForm.city} onChange={handleProviderFormChange} />
             </div>
 
             <textarea
@@ -750,16 +554,13 @@ function App() {
               placeholder="Write your service details here"
               rows="6"
               value={providerForm.details}
-              onChange={handleProviderChange}
+              onChange={handleProviderFormChange}
             ></textarea>
 
             <button type="submit">Register as Service Provider</button>
           </form>
         </section>
-
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
@@ -767,46 +568,16 @@ function App() {
   if (page === "adminLogin") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
-              Customer Login
-            </button>
-            <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
-              Provider Login
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
             <h2>Admin Login</h2>
-            <p>Login to access admin dashboard.</p>
+            <p>Login to access admin dashboard</p>
           </div>
 
-          <form className="contact-form" onSubmit={handleAdminLogin}>
-            <input
-              type="email"
-              name="email"
-              placeholder="Admin Email"
-              value={adminForm.email}
-              onChange={handleAdminChange}
-            />
-            <input
-              type="password"
-              name="password"
-              placeholder="Admin Password"
-              value={adminForm.password}
-              onChange={handleAdminChange}
-            />
+          <form className="contact-form" onSubmit={adminLoginSubmit}>
+            <input type="email" name="email" placeholder="Admin Email" value={adminForm.email} onChange={handleAdminChange} />
+            <input type="password" name="password" placeholder="Admin Password" value={adminForm.password} onChange={handleAdminChange} />
             <button type="submit">Login as Admin</button>
           </form>
 
@@ -815,10 +586,7 @@ function App() {
             <p><strong>Demo Password:</strong> Macky143921</p>
           </div>
         </section>
-
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
@@ -826,34 +594,15 @@ function App() {
   if (page === "adminDashboard") {
     return (
       <div className="site">
-        <header className="header">
-          <div className="brand">
-            <h1>Macky Nexus Services ⭐</h1>
-            <p>Admin Dashboard</p>
-          </div>
-
-          <nav className="nav">
-            <button className="nav-btn" type="button" onClick={() => setPage("home")}>
-              Home
-            </button>
-            <button className="nav-btn" type="button" onClick={loadDashboard}>
-              Refresh
-            </button>
-          </nav>
-        </header>
-
+        <Header setPage={setPage} />
         <section className="section">
           <div className="section-title">
             <h2>Customer Requirements</h2>
-            <p>Submitted customer data is shown below.</p>
           </div>
 
           <div className="dashboard-list">
             {customerList.length === 0 ? (
-              <div className="card">
-                <h3>No Customer Data Yet</h3>
-                <p>Customer form submissions will appear here.</p>
-              </div>
+              <div className="card"><h3>No Customer Data Yet</h3></div>
             ) : (
               customerList.map((item) => (
                 <div className="card" key={item.id}>
@@ -888,15 +637,11 @@ function App() {
         <section className="section section-dark">
           <div className="section-title">
             <h2>Service Providers</h2>
-            <p>Registered provider data is shown below.</p>
           </div>
 
           <div className="dashboard-list">
             {providerList.length === 0 ? (
-              <div className="card">
-                <h3>No Provider Data Yet</h3>
-                <p>Provider registrations will appear here.</p>
-              </div>
+              <div className="card"><h3>No Provider Data Yet</h3></div>
             ) : (
               providerList.map((item) => (
                 <div className="card" key={item.id}>
@@ -928,225 +673,110 @@ function App() {
             )}
           </div>
         </section>
-
-        <footer className="footer">
-          <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="site">
-      <header className="header">
-        <div className="brand">
-          <h1>Macky Nexus Services ⭐</h1>
-          <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-        </div>
-
-        <nav className="nav">
-          <a href="#home">Home</a>
-          <a href="#services">Services</a>
-          <a href="#roles">Roles</a>
-          <a href="#why">Why Us</a>
-          <a href="#contact">Contact</a>
-          <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
-            Customer Login
-          </button>
-          <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
-            Service Provider Login
-          </button>
-          <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
-            Admin
-          </button>
-        </nav>
-      </header>
+      <Header setPage={setPage} />
 
       <section id="home" className="hero">
         <div className="hero-text">
-          <span className="badge">
-            One Platform • Multiple Services • Direct Opportunities
-          </span>
-
+          <span className="badge">One Platform • Multiple Services • Direct Opportunities</span>
           <h2>
             The Smart Marketplace for Customers, Vendors, Freelancers,
             Companies & Service Providers
           </h2>
-
           <p>
             Macky Nexus Services connects people who need services with the
-            people who provide them. From vendors and freelancers to solar,
-            property, IT, and telecom services, everything is available in one
-            trusted platform.
+            people who provide them across solar, property, IT, telecom and more.
           </p>
 
           <div className="hero-buttons">
-            <button type="button" onClick={() => setPage("customerLogin")}>
-              Customer Login
+            <button type="button" onClick={() => setPage("customerSignup")}>
+              Customer Signup
             </button>
-
-            <button
-              type="button"
-              className="outline"
-              onClick={() => setPage("providerLogin")}
-            >
-              Service Provider Login
+            <button type="button" className="outline" onClick={() => setPage("providerSignup")}>
+              Provider Signup
             </button>
-          </div>
-
-          <div className="hero-stats">
-            <div className="stat-box">
-              <h3>All-in-One</h3>
-              <p>Services Marketplace</p>
-            </div>
-            <div className="stat-box">
-              <h3>Direct</h3>
-              <p>Customer Connection</p>
-            </div>
-            <div className="stat-box">
-              <h3>Fast</h3>
-              <p>Requirement Posting</p>
-            </div>
           </div>
         </div>
 
         <div className="hero-card">
-          <h3>What You Get Here</h3>
+          <h3>Quick Access</h3>
           <ul>
-            <li>✔ Vendor Marketplace</li>
-            <li>✔ Solar Services</li>
-            <li>✔ Property Services</li>
-            <li>✔ Freelancer Network</li>
-            <li>✔ IT Company Support</li>
-            <li>✔ Telecom Solutions</li>
+            <li>✔ Customer Signup/Login</li>
+            <li>✔ Service Provider Signup/Login</li>
+            <li>✔ Admin Dashboard</li>
             <li>✔ Requirement Posting</li>
-            <li>✔ Business Opportunities</li>
+            <li>✔ Provider Registration</li>
           </ul>
         </div>
       </section>
 
-      <section id="services" className="section">
+      <section className="section">
         <div className="section-title">
-          <h2>Our Service Categories</h2>
-          <p>
-            Explore trusted professionals, companies, and service partners
-            across multiple industries.
-          </p>
-        </div>
-
-        <div className="grid">
-          <div className="card">
-            <h3>Vendor Marketplace</h3>
-            <p>Find trusted vendors, contractors, and service teams for business needs.</p>
-          </div>
-          <div className="card">
-            <h3>Solar Services</h3>
-            <p>Connect with solar installation companies and experts.</p>
-          </div>
-          <div className="card">
-            <h3>Property Services</h3>
-            <p>Get property support and professional maintenance services.</p>
-          </div>
-          <div className="card">
-            <h3>Freelancer Network</h3>
-            <p>Hire freelancers for technical and digital work.</p>
-          </div>
-          <div className="card">
-            <h3>IT Company Services</h3>
-            <p>Find software, website, and technical support providers.</p>
-          </div>
-          <div className="card">
-            <h3>Telecom Solutions</h3>
-            <p>Get telecom support for FTTH and field work.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="roles" className="section section-dark">
-        <div className="section-title">
-          <h2>Who Can Use This Platform?</h2>
-          <p>Macky Nexus Services is designed for every side of the marketplace.</p>
-        </div>
-
-        <div className="grid">
-          <div className="card">
-            <h3>Customers / Clients</h3>
-            <p>Search services and post your requirements.</p>
-          </div>
-          <div className="card">
-            <h3>Service Providers</h3>
-            <p>Register your business and get direct leads.</p>
-          </div>
-          <div className="card">
-            <h3>Freelancers / Vendors</h3>
-            <p>Find work opportunities and business connections.</p>
-          </div>
-          <div className="card">
-            <h3>Companies / Businesses</h3>
-            <p>Post requirements and hire trusted service partners.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="why" className="section">
-        <div className="section-title">
-          <h2>Why Choose Macky Nexus Services?</h2>
-          <p>Built to simplify service discovery and business growth.</p>
-        </div>
-
-        <div className="grid">
-          <div className="card">
-            <h3>Trusted Connections</h3>
-            <p>Connect with providers in a clear and professional way.</p>
-          </div>
-          <div className="card">
-            <h3>Multiple Industries</h3>
-            <p>One platform for solar, property, telecom, IT, and more.</p>
-          </div>
-          <div className="card">
-            <h3>Growth Opportunities</h3>
-            <p>Providers and companies can get more visibility and leads.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" className="section section-dark">
-        <div className="section-title">
-          <h2>Quick Access</h2>
-          <p>Choose how you want to use Macky Nexus Services.</p>
+          <h2>Choose Login Type</h2>
+          <p>Select the account type you want to use</p>
         </div>
 
         <div className="dashboard-list">
           <div className="card">
-            <h3>Customer Login</h3>
-            <p>Login with mobile OTP and open customer form.</p>
-            <button type="button" onClick={() => setPage("customerLogin")}>
-              Open Customer Login
+            <h3>Customer Account</h3>
+            <p>Create account and post requirements.</p>
+            <button type="button" onClick={() => setPage("customerSignup")}>Customer Signup</button>
+            <button type="button" className="outline" onClick={() => setPage("customerLogin")} style={{ marginTop: "10px" }}>
+              Customer Login
             </button>
           </div>
 
           <div className="card">
-            <h3>Service Provider Login</h3>
-            <p>Login with mobile OTP and open provider form.</p>
-            <button type="button" onClick={() => setPage("providerLogin")}>
-              Open Provider Login
+            <h3>Service Provider Account</h3>
+            <p>Create account and register services.</p>
+            <button type="button" onClick={() => setPage("providerSignup")}>Provider Signup</button>
+            <button type="button" className="outline" onClick={() => setPage("providerLogin")} style={{ marginTop: "10px" }}>
+              Provider Login
             </button>
           </div>
 
           <div className="card">
             <h3>Admin Access</h3>
-            <p>Open admin login and access dashboard.</p>
-            <button type="button" onClick={() => setPage("adminLogin")}>
-              Open Admin Login
-            </button>
+            <p>Admin can review and delete all data.</p>
+            <button type="button" onClick={() => setPage("adminLogin")}>Admin Login</button>
           </div>
         </div>
       </section>
 
-      <footer className="footer">
-        <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-      </footer>
+      <Footer />
     </div>
+  );
+}
+
+function Header({ setPage }) {
+  return (
+    <header className="header">
+      <div className="brand">
+        <h1>Macky Nexus Services ⭐</h1>
+        <p>Your Trusted Network for Services, Vendors & Opportunities</p>
+      </div>
+
+      <nav className="nav">
+        <button className="nav-btn" type="button" onClick={() => setPage("home")}>Home</button>
+        <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>Customer Login</button>
+        <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>Service Provider Login</button>
+        <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>Admin</button>
+      </nav>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="footer">
+      <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
+    </footer>
   );
 }
 
