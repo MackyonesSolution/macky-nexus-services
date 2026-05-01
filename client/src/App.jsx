@@ -4,6 +4,40 @@ import "./App.css";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000";
 
+function Header({ setPage }) {
+  return (
+    <header className="header">
+      <div className="brand">
+        <h1>Macky Nexus Services ⭐</h1>
+        <p>Your Trusted Network for Services, Vendors & Opportunities</p>
+      </div>
+
+      <nav className="nav">
+        <button className="nav-btn" type="button" onClick={() => setPage("home")}>
+          Home
+        </button>
+        <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>
+          Customer Login
+        </button>
+        <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>
+          Service Provider Login
+        </button>
+        <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>
+          Admin
+        </button>
+      </nav>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="footer">
+      <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
+    </footer>
+  );
+}
+
 function App() {
   const [page, setPage] = useState("home");
   const [adminToken, setAdminToken] = useState("");
@@ -35,6 +69,15 @@ function App() {
     password: "",
   });
 
+  const [forgotForm, setForgotForm] = useState({
+    email: "",
+  });
+
+  const [resetForm, setResetForm] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+
   const [loggedCustomer, setLoggedCustomer] = useState(null);
   const [loggedProvider, setLoggedProvider] = useState(null);
 
@@ -42,8 +85,10 @@ function App() {
     name: "",
     phone: "",
     email: "",
-    location: "",
+    city: "",
     category: "",
+    budget: "",
+    urgency: "",
     requirement: "",
   });
 
@@ -52,9 +97,33 @@ function App() {
     contactPerson: "",
     phone: "",
     email: "",
-    serviceType: "",
+    category: "",
     city: "",
-    details: "",
+    state: "",
+    serviceAreas: "",
+    experienceYears: "",
+    teamSize: "",
+    toolsSummary: "",
+    vehiclesAvailable: "",
+    emergencySupport: "",
+    description: "",
+    telecomWorkTypes: "",
+    fusionMachine: "",
+    otdr: "",
+    powerMeter: "",
+    drillingMachine: "",
+    ladder: "",
+    safetyKit: "",
+    telecomCertifications: "",
+    propertyServices: "",
+    residentialCommercial: "",
+    propertyTypes: "",
+    solarTypes: "",
+    rooftopGround: "",
+    installationCapacityKw: "",
+    technicianCount: "",
+    electricalLicense: "",
+    brandsHandled: "",
   });
 
   const handleAdminChange = (e) => {
@@ -75,6 +144,14 @@ function App() {
 
   const handleProviderLoginChange = (e) => {
     setProviderLogin({ ...providerLogin, [e.target.name]: e.target.value });
+  };
+
+  const handleForgotChange = (e) => {
+    setForgotForm({ ...forgotForm, [e.target.name]: e.target.value });
+  };
+
+  const handleResetChange = (e) => {
+    setResetForm({ ...resetForm, [e.target.name]: e.target.value });
   };
 
   const handleCustomerFormChange = (e) => {
@@ -166,8 +243,10 @@ function App() {
           name: data.user.name || "",
           phone: data.user.mobile || "",
           email: data.user.email || "",
-          location: "",
+          city: "",
           category: "",
+          budget: "",
+          urgency: "",
           requirement: "",
         });
         setCustomerLogin({ login: "", password: "" });
@@ -198,20 +277,78 @@ function App() {
 
       if (data.ok) {
         setLoggedProvider(data.user);
-        setProviderForm({
-          companyName: "",
+        setProviderForm((prev) => ({
+          ...prev,
           contactPerson: data.user.name || "",
           phone: data.user.mobile || "",
           email: data.user.email || "",
-          serviceType: "",
-          city: "",
-          details: "",
-        });
+        }));
         setProviderLogin({ login: "", password: "" });
         setPage("provider");
       }
     } catch (error) {
       alert("Provider login failed");
+      console.log(error);
+    }
+  };
+
+  const forgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotForm.email }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setForgotForm({ email: "" });
+      }
+    } catch (error) {
+      alert("Failed to send reset link");
+      console.log(error);
+    }
+  };
+
+  const resetPasswordSubmit = async (e) => {
+    e.preventDefault();
+
+    const token = new URLSearchParams(window.location.search).get("token");
+
+    if (!token) {
+      alert("Invalid reset link");
+      return;
+    }
+
+    if (resetForm.password !== resetForm.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          password: resetForm.password,
+        }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      if (data.ok) {
+        setResetForm({ password: "", confirmPassword: "" });
+        setPage("customerLogin");
+        window.history.replaceState({}, "", "/");
+      }
+    } catch (error) {
+      alert("Password reset failed");
       console.log(error);
     }
   };
@@ -237,8 +374,10 @@ function App() {
           name: loggedCustomer?.name || "",
           phone: loggedCustomer?.mobile || "",
           email: loggedCustomer?.email || "",
-          location: "",
+          city: "",
           category: "",
+          budget: "",
+          urgency: "",
           requirement: "",
         });
       }
@@ -252,7 +391,7 @@ function App() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/service-providers`, {
+      const res = await fetch(`${API_BASE_URL}/api/provider-profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -263,20 +402,8 @@ function App() {
 
       const data = await res.json();
       alert(data.message);
-
-      if (data.ok) {
-        setProviderForm({
-          companyName: "",
-          contactPerson: loggedProvider?.name || "",
-          phone: loggedProvider?.mobile || "",
-          email: loggedProvider?.email || "",
-          serviceType: "",
-          city: "",
-          details: "",
-        });
-      }
     } catch (error) {
-      alert("Provider form submit failed");
+      alert("Provider profile submit failed");
       console.log(error);
     }
   };
@@ -355,7 +482,7 @@ function App() {
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/admin/service-providers/${id}`,
+        `${API_BASE_URL}/api/admin/provider-profile/${id}`,
         {
           method: "DELETE",
           headers: { "x-admin-token": adminToken },
@@ -372,8 +499,14 @@ function App() {
   };
 
   useEffect(() => {
+    if (window.location.pathname === "/reset-password") {
+      setPage("resetPassword");
+    }
+  }, []);
+
+  useEffect(() => {
     if (page === "adminDashboard" && adminToken) {
-      loadDashboard(adminToken);
+      loadDashboard();
     }
   }, [page, adminToken]);
 
@@ -419,6 +552,9 @@ function App() {
             <input type="text" name="login" placeholder="Email or Mobile" value={customerLogin.login} onChange={handleCustomerLoginChange} />
             <input type="password" name="password" placeholder="Password" value={customerLogin.password} onChange={handleCustomerLoginChange} />
             <button type="submit">Login as Customer</button>
+            <button type="button" className="outline" onClick={() => setPage("forgotPassword")}>
+              Forgot Password
+            </button>
           </form>
 
           <div className="admin-note">
@@ -473,12 +609,56 @@ function App() {
             <input type="text" name="login" placeholder="Email or Mobile" value={providerLogin.login} onChange={handleProviderLoginChange} />
             <input type="password" name="password" placeholder="Password" value={providerLogin.password} onChange={handleProviderLoginChange} />
             <button type="submit">Login as Service Provider</button>
+            <button type="button" className="outline" onClick={() => setPage("forgotPassword")}>
+              Forgot Password
+            </button>
           </form>
 
           <div className="admin-note">
             <p>New service provider?</p>
             <button type="button" onClick={() => setPage("providerSignup")}>Create Provider Account</button>
           </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (page === "forgotPassword") {
+    return (
+      <div className="site">
+        <Header setPage={setPage} />
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Forgot Password</h2>
+            <p>Enter your email to get reset link</p>
+          </div>
+
+          <form className="contact-form" onSubmit={forgotPasswordSubmit}>
+            <input type="email" name="email" placeholder="Email Address" value={forgotForm.email} onChange={handleForgotChange} />
+            <button type="submit">Send Reset Link</button>
+          </form>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (page === "resetPassword") {
+    return (
+      <div className="site">
+        <Header setPage={setPage} />
+        <section className="section section-dark">
+          <div className="section-title">
+            <h2>Reset Password</h2>
+            <p>Set your new password</p>
+          </div>
+
+          <form className="contact-form" onSubmit={resetPasswordSubmit}>
+            <input type="password" name="password" placeholder="New Password" value={resetForm.password} onChange={handleResetChange} />
+            <input type="password" name="confirmPassword" placeholder="Confirm New Password" value={resetForm.confirmPassword} onChange={handleResetChange} />
+            <button type="submit">Update Password</button>
+          </form>
         </section>
         <Footer />
       </div>
@@ -500,7 +680,7 @@ function App() {
               <input type="text" name="name" placeholder="Your Name" value={customerForm.name} onChange={handleCustomerFormChange} />
               <input type="text" name="phone" placeholder="Phone Number" value={customerForm.phone} onChange={handleCustomerFormChange} />
               <input type="email" name="email" placeholder="Email Address" value={customerForm.email} onChange={handleCustomerFormChange} />
-              <input type="text" name="location" placeholder="Location / City" value={customerForm.location} onChange={handleCustomerFormChange} />
+              <input type="text" name="city" placeholder="City" value={customerForm.city} onChange={handleCustomerFormChange} />
             </div>
 
             <select name="category" value={customerForm.category} onChange={handleCustomerFormChange}>
@@ -508,10 +688,14 @@ function App() {
               <option value="Vendor Requirement">Vendor Requirement</option>
               <option value="Solar Service">Solar Service</option>
               <option value="Property Service">Property Service</option>
-              <option value="Freelancer Requirement">Freelancer Requirement</option>
-              <option value="IT Company Service">IT Company Service</option>
               <option value="Telecom Support">Telecom Support</option>
+              <option value="IT Company Service">IT Company Service</option>
             </select>
+
+            <div className="form-grid">
+              <input type="text" name="budget" placeholder="Budget" value={customerForm.budget} onChange={handleCustomerFormChange} />
+              <input type="text" name="urgency" placeholder="Urgency" value={customerForm.urgency} onChange={handleCustomerFormChange} />
+            </div>
 
             <textarea
               name="requirement"
@@ -535,7 +719,7 @@ function App() {
         <Header setPage={setPage} />
         <section className="section section-dark">
           <div className="section-title">
-            <h2>Service Provider Form</h2>
+            <h2>Professional Service Provider Profile</h2>
             <p>Welcome, {loggedProvider?.name}</p>
           </div>
 
@@ -545,19 +729,51 @@ function App() {
               <input type="text" name="contactPerson" placeholder="Contact Person Name" value={providerForm.contactPerson} onChange={handleProviderFormChange} />
               <input type="text" name="phone" placeholder="Phone Number" value={providerForm.phone} onChange={handleProviderFormChange} />
               <input type="email" name="email" placeholder="Email Address" value={providerForm.email} onChange={handleProviderFormChange} />
-              <input type="text" name="serviceType" placeholder="Service Type" value={providerForm.serviceType} onChange={handleProviderFormChange} />
-              <input type="text" name="city" placeholder="City / Location" value={providerForm.city} onChange={handleProviderFormChange} />
+              <input type="text" name="category" placeholder="Category (Telecom / Property / Solar / IT / Vendor)" value={providerForm.category} onChange={handleProviderFormChange} />
+              <input type="text" name="city" placeholder="City" value={providerForm.city} onChange={handleProviderFormChange} />
+              <input type="text" name="state" placeholder="State" value={providerForm.state} onChange={handleProviderFormChange} />
+              <input type="text" name="serviceAreas" placeholder="Service Areas" value={providerForm.serviceAreas} onChange={handleProviderFormChange} />
+              <input type="text" name="experienceYears" placeholder="Experience (Years)" value={providerForm.experienceYears} onChange={handleProviderFormChange} />
+              <input type="text" name="teamSize" placeholder="Team Size" value={providerForm.teamSize} onChange={handleProviderFormChange} />
+              <input type="text" name="vehiclesAvailable" placeholder="Vehicles Available" value={providerForm.vehiclesAvailable} onChange={handleProviderFormChange} />
+              <input type="text" name="emergencySupport" placeholder="Emergency Support (Yes/No)" value={providerForm.emergencySupport} onChange={handleProviderFormChange} />
             </div>
 
-            <textarea
-              name="details"
-              placeholder="Write your service details here"
-              rows="6"
-              value={providerForm.details}
-              onChange={handleProviderFormChange}
-            ></textarea>
+            <textarea name="toolsSummary" placeholder="Tools / Equipment Summary" rows="3" value={providerForm.toolsSummary} onChange={handleProviderFormChange}></textarea>
+            <textarea name="description" placeholder="Company / Service Description" rows="4" value={providerForm.description} onChange={handleProviderFormChange}></textarea>
 
-            <button type="submit">Register as Service Provider</button>
+            <div className="section-title">
+              <h2 style={{ fontSize: '24px' }}>Telecom Details</h2>
+            </div>
+            <textarea name="telecomWorkTypes" placeholder="FTTH / OFC / Splicing / Fault Repair / Survey" rows="3" value={providerForm.telecomWorkTypes} onChange={handleProviderFormChange}></textarea>
+            <div className="form-grid">
+              <input type="text" name="fusionMachine" placeholder="Fusion Machine (Yes/No)" value={providerForm.fusionMachine} onChange={handleProviderFormChange} />
+              <input type="text" name="otdr" placeholder="OTDR (Yes/No)" value={providerForm.otdr} onChange={handleProviderFormChange} />
+              <input type="text" name="powerMeter" placeholder="Power Meter (Yes/No)" value={providerForm.powerMeter} onChange={handleProviderFormChange} />
+              <input type="text" name="drillingMachine" placeholder="Drilling Machine (Yes/No)" value={providerForm.drillingMachine} onChange={handleProviderFormChange} />
+              <input type="text" name="ladder" placeholder="Ladder (Yes/No)" value={providerForm.ladder} onChange={handleProviderFormChange} />
+              <input type="text" name="safetyKit" placeholder="Safety Kit (Yes/No)" value={providerForm.safetyKit} onChange={handleProviderFormChange} />
+            </div>
+            <textarea name="telecomCertifications" placeholder="Telecom Certificates / Licenses / Details" rows="3" value={providerForm.telecomCertifications} onChange={handleProviderFormChange}></textarea>
+
+            <div className="section-title">
+              <h2 style={{ fontSize: '24px' }}>Property Details</h2>
+            </div>
+            <input type="text" name="propertyServices" placeholder="Sell / Purchase / Rent / Lease" value={providerForm.propertyServices} onChange={handleProviderFormChange} />
+            <input type="text" name="residentialCommercial" placeholder="Residential / Commercial" value={providerForm.residentialCommercial} onChange={handleProviderFormChange} />
+            <textarea name="propertyTypes" placeholder="Flat / Plot / House / Shop / Office / Land" rows="3" value={providerForm.propertyTypes} onChange={handleProviderFormChange}></textarea>
+
+            <div className="section-title">
+              <h2 style={{ fontSize: '24px' }}>Solar Details</h2>
+            </div>
+            <input type="text" name="solarTypes" placeholder="Residential / Commercial / Industrial" value={providerForm.solarTypes} onChange={handleProviderFormChange} />
+            <input type="text" name="rooftopGround" placeholder="Rooftop / Ground" value={providerForm.rooftopGround} onChange={handleProviderFormChange} />
+            <input type="text" name="installationCapacityKw" placeholder="Installation Capacity (KW)" value={providerForm.installationCapacityKw} onChange={handleProviderFormChange} />
+            <input type="text" name="technicianCount" placeholder="Technician Count" value={providerForm.technicianCount} onChange={handleProviderFormChange} />
+            <input type="text" name="electricalLicense" placeholder="Electrical License (Yes/No)" value={providerForm.electricalLicense} onChange={handleProviderFormChange} />
+            <textarea name="brandsHandled" placeholder="Brands Handled" rows="3" value={providerForm.brandsHandled} onChange={handleProviderFormChange}></textarea>
+
+            <button type="submit">Save Professional Profile</button>
           </form>
         </section>
         <Footer />
@@ -610,7 +826,9 @@ function App() {
                   <p><strong>Name:</strong> {item.name}</p>
                   <p><strong>Phone:</strong> {item.phone}</p>
                   <p><strong>Email:</strong> {item.email}</p>
-                  <p><strong>Location:</strong> {item.location}</p>
+                  <p><strong>City:</strong> {item.city}</p>
+                  <p><strong>Budget:</strong> {item.budget}</p>
+                  <p><strong>Urgency:</strong> {item.urgency}</p>
                   <p><strong>Requirement:</strong> {item.requirement}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
                   <button
@@ -649,9 +867,10 @@ function App() {
                   <p><strong>Contact Person:</strong> {item.contactPerson}</p>
                   <p><strong>Phone:</strong> {item.phone}</p>
                   <p><strong>Email:</strong> {item.email}</p>
-                  <p><strong>Service Type:</strong> {item.serviceType}</p>
+                  <p><strong>Category:</strong> {item.serviceType}</p>
                   <p><strong>City:</strong> {item.city}</p>
                   <p><strong>Details:</strong> {item.details}</p>
+                  <p><strong>Status:</strong> {item.approvalStatus}</p>
                   <p><strong>Submitted:</strong> {item.createdAt}</p>
                   <button
                     onClick={() => deleteProvider(item.id)}
@@ -698,7 +917,12 @@ function App() {
             <button type="button" onClick={() => setPage("customerSignup")}>
               Customer Signup
             </button>
-            <button type="button" className="outline" onClick={() => setPage("providerSignup")}>
+
+            <button
+              type="button"
+              className="outline"
+              onClick={() => setPage("providerSignup")}
+            >
               Provider Signup
             </button>
           </div>
@@ -709,9 +933,8 @@ function App() {
           <ul>
             <li>✔ Customer Signup/Login</li>
             <li>✔ Service Provider Signup/Login</li>
+            <li>✔ Forgot Password by Email</li>
             <li>✔ Admin Dashboard</li>
-            <li>✔ Requirement Posting</li>
-            <li>✔ Provider Registration</li>
           </ul>
         </div>
       </section>
@@ -751,32 +974,6 @@ function App() {
 
       <Footer />
     </div>
-  );
-}
-
-function Header({ setPage }) {
-  return (
-    <header className="header">
-      <div className="brand">
-        <h1>Macky Nexus Services ⭐</h1>
-        <p>Your Trusted Network for Services, Vendors & Opportunities</p>
-      </div>
-
-      <nav className="nav">
-        <button className="nav-btn" type="button" onClick={() => setPage("home")}>Home</button>
-        <button className="nav-btn" type="button" onClick={() => setPage("customerLogin")}>Customer Login</button>
-        <button className="nav-btn" type="button" onClick={() => setPage("providerLogin")}>Service Provider Login</button>
-        <button className="nav-btn" type="button" onClick={() => setPage("adminLogin")}>Admin</button>
-      </nav>
-    </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="footer">
-      <p>© 2026 Macky Nexus Services ⭐ | All Rights Reserved</p>
-    </footer>
   );
 }
 
